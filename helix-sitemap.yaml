@@ -1,0 +1,5 @@
+sitemaps:
+   default:
+     origin: https://www.bitdefender.com.au
+     source: /solutions/query-index.json
+     destination: /solutions/sitemap.xml
