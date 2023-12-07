@@ -130,32 +130,6 @@ export async function loadScript(src, attrs) {
   });
 }
 
-
-/**
- * Loads a non module JS file.
- * @param {string} src URL to the JS file
- * @param {Object} attrs additional optional attributes
- */
-export async function loadScript(src, attrs) {
-  return new Promise((resolve, reject) => {
-    if (!document.querySelector(`head > script[src="${src}"]`)) {
-      const script = document.createElement('script');
-      script.src = src;
-      if (attrs) {
-        // eslint-disable-next-line no-restricted-syntax, guard-for-in
-        for (const attr in attrs) {
-          script.setAttribute(attr, attrs[attr]);
-        }
-      }
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.append(script);
-    } else {
-      resolve();
-    }
-  });
-}
-
 /**
  * Retrieves the content of metadata tags.
  * @param {string} name The metadata name (or property)
@@ -165,22 +139,6 @@ export function getMetadata(name) {
   const attr = name && name.includes(':') ? 'property' : 'name';
   const meta = [...document.head.querySelectorAll(`meta[${attr}="${name}"]`)].map((m) => m.content).join(', ');
   return meta || '';
-}
-
-/**
- * Gets all the metadata elements that are in the given scope.
- * @param {String} scope The scope/prefix for the metadata
- * @returns an array of HTMLElement nodes that match the given scope
- */
-export function getAllMetadata(scope) {
-  return [...document.head.querySelectorAll(`meta[property^="${scope}:"],meta[name^="${scope}-"]`)]
-      .reduce((res, meta) => {
-        const id = toClassName(meta.name
-            ? meta.name.substring(scope.length + 1)
-            : meta.getAttribute('property').split(':')[1]);
-        res[id] = meta.getAttribute('content');
-        return res;
-      }, {});
 }
 
 /**
@@ -350,7 +308,7 @@ export async function fetchPlaceholders(prefix = 'default') {
   const loaded = window.placeholders[`${prefix}-loaded`];
   if (!loaded) {
     window.placeholders[`${prefix}-loaded`] = new Promise((resolve, reject) => {
-      fetch(`${prefix === 'default' ? '' : prefix}/solutions/placeholders.json`)
+      fetch(`${prefix === 'default' ? '' : prefix}/placeholders.json`)
         .then((resp) => {
           if (resp.ok) {
             return resp.json();
@@ -374,6 +332,14 @@ export async function fetchPlaceholders(prefix = 'default') {
   }
   await window.placeholders[`${prefix}-loaded`];
   return window.placeholders[prefix];
+}
+
+export function getPlaceholderOrDefault(key, defaultText) {
+  if (!key) {
+    return defaultText || '';
+  }
+
+  return window.placeholders?.[`/${document.documentElement.lang}`]?.[key] || defaultText || '';
 }
 
 /**
@@ -959,7 +925,7 @@ export function setup() {
   window.hlx.plugins = new PluginsRegistry();
   window.hlx.templates = new TemplatesRegistry();
 
-  const scriptEl = document.querySelector('script[src$="/solutions/scripts/scripts.js"]');
+  const scriptEl = document.querySelector('script[src$="/scripts/scripts.js"]');
   if (scriptEl) {
     try {
       [window.hlx.codeBasePath] = new URL(scriptEl.src).pathname.split('/scripts/scripts.js');
