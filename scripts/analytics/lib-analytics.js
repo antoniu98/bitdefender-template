@@ -10,11 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
+import configs from './config-analytics.js';
+
 /**
  * Customer's XDM schema namespace
  * @type {string}
  */
-const CUSTOM_SCHEMA_NAMESPACE = '_sitesinternal';
+const CUSTOM_SCHEMA_NAMESPACE = configs.tenantId;
 let documentUnloading = false;
 
 /**
@@ -102,10 +104,9 @@ function getAlloyInitScript() {
  * @returns {{edgeConfigId: string, orgId: string}}
  */
 function getDatastreamConfiguration() {
-  // Sites Internal
   return {
-    edgeConfigId: '5b508100-24e1-4657-8387-e325f5e5177b',
-    orgId: '908936ED5D35CC220A495CD4@AdobeOrg',
+    edgeConfigId: configs.edgeConfigId,
+    orgId: configs.orgId,
   };
 }
 
