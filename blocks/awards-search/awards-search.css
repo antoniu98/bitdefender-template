@@ -43,7 +43,7 @@ main .section .awards-search .award-search-filter-wrapper {
     padding: 0 !important;
 }
 
-main .section .awards-search .award-search-filter-wrapper .text-box-wrapper, 
+main .section .awards-search .award-search-filter-wrapper .text-box-wrapper,
 main .section .awards-search .award-search-filter-wrapper .accordion-wrapper {
     margin-left: 0;
     margin-right: 0;
@@ -102,8 +102,8 @@ main .section .awards-search .awards-results-container .award-item-container h2 
     width: 1.5rem;
     height: 1.3125rem;
     /* stylelint-disable-next-line property-no-vendor-prefix */
-    -webkit-mask: url('/solutions/icons/arrow-right.svg');
-    mask: url('/solutions/icons/arrow-right.svg');
+    -webkit-mask: url('/icons/arrow-right.svg');
+    mask: url('/icons/arrow-right.svg');
     background-color: var(--read-more-text-color);
     display: inline-block;
     opacity: 1;
@@ -188,7 +188,7 @@ main .section .awards-search .awards-results-container .award-results-filters-co
     main .section .awards-search .award-search-filter-wrapper {
         margin-right: 2rem;
     }
-    
+
     main .section .awards-search .awards-results-container {
         flex: 2;
     }

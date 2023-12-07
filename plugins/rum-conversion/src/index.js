@@ -10,13 +10,6 @@
  * governing permissions and limitations under the License.
  */
 const { sampleRUM } = window.hlx.rum;
-// SampleRUM always initialization should happen in lib-franklin
-// we need to initialize it here until the initialization is part of
-// the boilerplate.
-sampleRUM.always = sampleRUM.always || [];
-sampleRUM.always.on = (chkpnt, fn) => {
-  sampleRUM.always[chkpnt] = fn;
-};
 
 /**
 * Registers the 'convert' function to `sampleRUM` which sends
@@ -45,10 +38,6 @@ sampleRUM.drain('convert', (cevent, cvalueThunk, element, listenTo = []) => {
 
       const data = { source: cevent, target: cvalue, element: celement };
       sampleRUM('convert', data);
-      // Following if statement must be removed once always mechanism is present in the boilerplate
-      if (sampleRUM.always && sampleRUM.always.convert) {
-        sampleRUM.always.convert(data);
-      }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error reading experiments', e);
@@ -60,6 +49,10 @@ sampleRUM.drain('convert', (cevent, cvalueThunk, element, listenTo = []) => {
     if (Array.isArray(elements) || elements instanceof NodeList) {
       elements.forEach((e) => registerConversionListener(e, listenTo, cevent, cvalueThunk));
     } else {
+      // add data attribute to elements tracked in preview
+      if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.hlx.page')) {
+        element.dataset.conversionTracking = true;
+      }
       listenTo.forEach((eventName) => element.addEventListener(
         eventName,
         (e) => trackConversion(e.target),

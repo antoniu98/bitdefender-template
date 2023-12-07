@@ -145,7 +145,7 @@
     margin: 0 auto;
   }
 
-  .columns.highlight-text.black { 
+  .columns.highlight-text.black {
     right: 10%;
     top: 10%;
   }
@@ -233,7 +233,7 @@
   padding-top: 1px;
 }
 
-.columns.vpn-presentation .button-container, 
+.columns.vpn-presentation .button-container,
 .columns.vpn-presentation .info-button-container{
   display: inline-block;
   padding-right: 13px;
@@ -448,7 +448,7 @@ main .section.two-columns .right-col .products.plans a.button:any-link {
 
 
 .two-columns .left-col p a.info-button.modal::before {
-  content: url("/solutions/icons/user-guide-white.svg");
+  content: url("/icons/user-guide-white.svg");
   color: white;
   padding-right: 8px;
 }
