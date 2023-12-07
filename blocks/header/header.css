@@ -41,7 +41,7 @@ nav {
 
 .nav-sections {
   flex-wrap: nowrap;
-  justify-content: flex-end; 
+  justify-content: flex-end;
 }
 
 .nav-brand p,
@@ -55,9 +55,9 @@ nav {
 
 .login-modal > p {
   position: relative;
-  width: 100%; 
+  width: 100%;
   display: block;
-  text-align: center; 
+  text-align: center;
   margin-top: 45px;
 }
 
@@ -96,7 +96,7 @@ nav {
 .nav-divider {
   display: flex;
   flex-wrap: nowrap;
-  justify-content: flex-end; 
+  justify-content: flex-end;
   min-width: 2px;
   width: 2px;
   background-color: var(--color-dark-gray);
@@ -117,7 +117,7 @@ nav {
   top: 80px;
   background-color: var(--background-color);
   border-radius: 5px;
-  opacity: 0; 
+  opacity: 0;
   transition: all 0.3s ease-in-out;
   box-shadow: 0 10px 10px #0003;
   z-index: 0;
@@ -140,7 +140,7 @@ nav {
   width: 100%;
   margin-left: 25px;
   top: 15px;
-  text-align: left; 
+  text-align: left;
 }
 
 .divider {
@@ -161,7 +161,7 @@ nav {
   background-color: transparent !important;
   margin: -70px;
   padding: 5px;
-  display: inline-block; 
+  display: inline-block;
   font-size: var(--body-font-size-xs);
   font-weight: 500;
 }
@@ -230,7 +230,7 @@ header.expanded .logo-container {
 .login-buttons a p {
   text-align: center;
   font-size: var(--body-font-size-xs);
-  font-weight: var(--font-weight-bold); 
+  font-weight: var(--font-weight-bold);
   margin-top: 5px;
   transition: all 0.3s ease-in-out;
   height: 100%;
@@ -321,13 +321,13 @@ header a.button:hover span.button-text {
 .mega-menu > div:first-child {
   display: grid;
   grid-template-rows: auto auto;
-  grid-template-columns: 1fr 1fr 1fr; 
+  grid-template-columns: 1fr 1fr 1fr;
   align-items: start;
   border-bottom: 2px solid #f5f6f7;
 }
 
 .mega-menu > div:first-child h2 {
-  grid-column: span 3; 
+  grid-column: span 3;
 }
 
 .mega-menu > div:first-child p {
@@ -352,8 +352,8 @@ header a.button:hover span.button-text {
   width: 24px;
   height: 24px;
   /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-mask:url('/solutions/icons/arrow-right.svg');
-  mask: url('/solutions/icons/arrow-right.svg');
+  -webkit-mask:url('/icons/arrow-right.svg');
+  mask: url('/icons/arrow-right.svg');
   background-color: var(--button-link-color);
   display: inline-block;
   transition: all .2s cubic-bezier(.4,0,.2,1);
@@ -373,11 +373,11 @@ header a.button:hover span.button-text {
   font-weight: var(--font-weight-bold);
   font-size: var(--body-font-size-s);
   margin: 25px 13px 25px 20px;
-  position: relative; 
+  position: relative;
 }
 
 .options-wrapper.show div::before {
-  border-color: black; 
+  border-color: black;
   border-style: solid;
   border-width: 0 2px 2px 0;
   content: "";
@@ -385,7 +385,7 @@ header a.button:hover span.button-text {
   height: 0.5rem;
   display: inline-block;
   position: absolute;
-  right: 10px; 
+  right: 10px;
   top: 50%;
   transform: translateY(-50%) rotate(-45deg);
 }
@@ -402,7 +402,7 @@ header a.button:hover span.button-text {
   .header-wrapper > p{
     display: none;
   }
-  
+
 }
 
 .icon.icon-arrow-right {
@@ -444,7 +444,7 @@ header a.button:hover span.button-text {
 }
 
 .menu-wrapper.change .menu-bar:nth-child(2) {
-  opacity: 0; 
+  opacity: 0;
 }
 
 .menu-wrapper.change .menu-bar:last-child {
@@ -486,12 +486,12 @@ header a.button:hover span.button-text {
   font-size: var(--body-font-size-xs);
   font-weight: var(--font-weight-bold);
   margin-left: 20px;
-  padding-left: 20px; 
+  padding-left: 20px;
   position: relative;
 }
 
 .options-wrapper.show .sub-menu-title::before {
-  border-color: black; 
+  border-color: black;
   border-style: solid;
   border-width: 0 2px 2px 0;
   content: "";
@@ -501,7 +501,7 @@ header a.button:hover span.button-text {
   position: absolute;
   left: 0;
   top: 50%;
-  transform: translate(0, -50%) rotate(135deg); 
+  transform: translate(0, -50%) rotate(135deg);
 }
 
 @keyframes slide-in {
@@ -567,7 +567,7 @@ header a.button:hover span.button-text {
     display: block;
     margin: 0 auto;
   }
-  
+
   nav {
     display: block;
     max-width: var(--section-desktop-max-width);
@@ -660,7 +660,7 @@ header a.button:hover span.button-text {
 .nav-brand p a.active::before,
 .nav-brand p a:hover::before,
 .nav-sections p.clicked a::before {
-  transform: scaleX(1);    
+  transform: scaleX(1);
   transform-origin: left;
 }
 
@@ -688,13 +688,13 @@ header a.button:hover span.button-text {
   width: 2px;
   background-color: #616161;
 }
-  
+
   .logo-container {
     padding: 20px var(--section-desktop-padding);
     margin: 21px auto 0;
     gap: 10px;
   }
-  
+
   .logo-container > p {
     display: block;
     font-weight: var(--font-weight-bold);
@@ -705,7 +705,7 @@ header a.button:hover span.button-text {
   .home-solutions-link-hover {
     color: #FFF;
   }
-  
+
   .home-solutions-link-default {
     display: block;
     color: var(--text-color);
@@ -718,7 +718,7 @@ header a.button:hover span.button-text {
   header.black-background .home-solutions-link-default {
     color: #dedede;
   }
-  
+
   .home-solutions-link-default::before {
     content: "";
     position: absolute;
@@ -733,7 +733,7 @@ header a.button:hover span.button-text {
   }
 
   .home-solutions-link-hover::before {
-      transform: scaleX(1);    
+      transform: scaleX(1);
       transform-origin: left;
   }
 
@@ -754,12 +754,12 @@ header a.button:hover span.button-text {
     display: none;
     opacity: 0;
   }
-  
+
   .mega-menu-show {
     opacity: 1;
     visibility: visible;
     display: flex;
-  }  
+  }
 
   .mega-menu div h2 {
     position: relative;
@@ -773,23 +773,23 @@ header a.button:hover span.button-text {
   .other-options > div:nth-child(5) {
     grid-area: 2 / 3 / 3 / 4;
   }
-  
+
   .other-options > div:nth-child(4) {
     grid-area: 2 / 2 / 3 / 3;
   }
-  
+
   .other-options > div:nth-child(3) {
     grid-area: 1 / 3 / 2 / 4;
   }
-  
+
   .other-options > div:nth-child(2) {
     grid-area: 1 / 2 / 2 / 3;
   }
-  
+
   .other-options > div:nth-child(1) {
     grid-area: 1 / 1 / 3 / 2;
   }
-  
+
   .other-options > div > p {
     position: relative;
     top: 0;
@@ -819,7 +819,7 @@ header a.button:hover span.button-text {
     transition: none;
     transform: none;
   }
-  
+
   .mega-menu > div:first-child p a::after {
     display: none;
   }
@@ -842,7 +842,7 @@ header a.button:hover span.button-text {
     line-height: 18px;
     align-items: center;
   }
-  
+
   .mega-menu .button-container:hover a.button::after {
     transform: none;
     opacity: 1;
@@ -851,7 +851,7 @@ header a.button:hover span.button-text {
   .mega-menu > div:first-child {
     display: grid;
     grid-template-rows: auto auto;
-    grid-template-columns: 1fr 1fr 1fr; 
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: start;
     border-bottom: 2px solid #f5f6f7;
     padding-bottom: 14px;
@@ -868,9 +868,9 @@ header a.button:hover span.button-text {
   }
 
   .mega-menu > div:first-child h2 {
-    grid-column: span 3; 
+    grid-column: span 3;
   }
-  
+
   .mega-menu div p {
     margin-left: 15px;
   }
@@ -901,8 +901,8 @@ header a.button:hover span.button-text {
     width: 24px;
     height: 24px;
     /* stylelint-disable-next-line property-no-vendor-prefix */
-    -webkit-mask:url('/solutions/icons/arrow-right.svg');
-    mask: url('/solutions/icons/arrow-right.svg');
+    -webkit-mask:url('/icons/arrow-right.svg');
+    mask: url('/icons/arrow-right.svg');
     background-color: var(--button-link-color);
     display: inline-block;
     transition: all .2s cubic-bezier(.4,0,.2,1);
@@ -924,11 +924,11 @@ header a.button:hover span.button-text {
     background-color: transparent;
     border: none;
   }
-  
+
   .mega-menu > div:first-child p:hover a {
     color: var(--color-highlight-blue) !important;
   }
-  
+
   .other-options {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -936,7 +936,7 @@ header a.button:hover span.button-text {
     grid-gap: 0;
     padding-top: 14px;
   }
-  
+
   #new, #evolved {
     position: relative;
     font-size: var(--body-font-size-xxs);
@@ -956,21 +956,21 @@ header a.button:hover span.button-text {
 
 }
 
-@media (min-width: 1200px) { 
+@media (min-width: 1200px) {
   .mega-menu {
     left: 80px;
     transform: translateX(0);
   }
 }
 
-@media (min-width: 1400px) { 
+@media (min-width: 1400px) {
   .mega-menu {
     left: 210px;
     transform: translateX(0);
   }
 }
 
-@media (min-width: 1600px) { 
+@media (min-width: 1600px) {
   .mega-menu {
     left: 240px;
     transform: translateX(0);

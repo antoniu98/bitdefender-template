@@ -2,10 +2,10 @@ version: 1
 indices:
   default:
     include:
-      - /solutions/**
+      - /**
     exclude:
-      - /solutions/fragments/**  
-    target: /solutions/query-index.json
+      - /fragments/**
+    target: /query-index.json
     properties:
       title:
         select: head > meta[property="og:title"]
@@ -22,7 +22,7 @@ indices:
         value: textContent(el)
       breadcrumbtitle:
         select: head > meta[name="breadcrumb-title"]
-        value: attribute(el, "content")  
+        value: attribute(el, "content")
       robots:
         select: head > meta[name="robots"]
-        value: attribute(el, "content")  
+        value: attribute(el, "content")
