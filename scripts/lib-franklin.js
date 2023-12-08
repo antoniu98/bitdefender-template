@@ -204,6 +204,47 @@ export function decorateIcons(element = document) {
   });
 }
 
+export async function decorateTags(element) {
+  const tagTypes = [
+    { regex: /\[#(.*?)#\]/g, className: 'dark-blue' },
+    { regex: /\[{(.*?)}\]/g, className: 'light-blue' },
+    { regex: /\[\$(.*?)\$\]/g, className: 'green' },
+  ];
+
+  function replaceTags(inputValue) {
+    let nodeValue = inputValue; // Create a local copy to work on
+    let replaced = false;
+
+    tagTypes.forEach((tagType) => {
+      let match = tagType.regex.exec(nodeValue);
+      while (match !== null) {
+        nodeValue = nodeValue.replace(match[0], `<span class="tag tag-${tagType.className}">${match[1]}</span>`);
+        replaced = true;
+        tagType.regex.lastIndex = 0; // Reset regex index
+        match = tagType.regex.exec(nodeValue);
+      }
+    });
+
+    return { nodeValue, replaced };
+  }
+
+  function replaceTagsInNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const originalValue = node.nodeValue;
+      const { nodeValue } = replaceTags(originalValue);
+      if (nodeValue !== originalValue) { // This checks if the nodeValue has been modified.
+        const newNode = document.createElement('span');
+        newNode.innerHTML = nodeValue;
+        node.parentNode.replaceChild(newNode, node);
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      node.childNodes.forEach(replaceTagsInNode);
+    }
+  }
+
+  replaceTagsInNode(element);
+}
+
 /**
  * Gets placeholders object.
  * @param {string} [prefix] Location of placeholders
