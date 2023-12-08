@@ -422,43 +422,18 @@ export function buildBlock(blockName, content) {
  * @returns {Object} The block config (blockName, cssPath and jsPath)
  */
 function getBlockConfig(block) {
-  const { blockName } = block.dataset;
+  const blockName = block.getAttribute('data-block-name');
   const cssPath = `${window.hlx.codeBasePath}/blocks/${blockName}/${blockName}.css`;
   const jsPath = `${window.hlx.codeBasePath}/blocks/${blockName}/${blockName}.js`;
-  const original = { blockName, cssPath, jsPath };
-  return (window.hlx.patchBlockConfig || [])
-    .filter((fn) => typeof fn === 'function')
-    .reduce((config, fn) => fn(config, original), { blockName, cssPath, jsPath });
-}
 
-/**
- * Loads JS and CSS for a module and executes it's default export.
- * @param {string} name The module name
- * @param {string} jsPath The JS file to load
- * @param {string} [cssPath] An optional CSS file to load
- * @param {object[]} [args] Parameters to be passed to the default export when it is called
- */
-async function loadModule(name, jsPath, cssPath, ...args) {
-  const cssLoaded = cssPath ? loadCSS(cssPath) : Promise.resolve();
-  const decorationComplete = jsPath
-    ? new Promise((resolve) => {
-      (async () => {
-        let mod;
-        try {
-          mod = await import(jsPath);
-          if (mod.default) {
-            await mod.default.apply(null, args);
-          }
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.log(`failed to load module for ${name}`, error);
-        }
-        resolve(mod);
-      })();
-    })
-    : Promise.resolve();
-  return Promise.all([cssLoaded, decorationComplete])
-    .then(([, api]) => api);
+  if (!window.hlx.patchBlockConfig) {
+    return { blockName, cssPath, jsPath };
+  }
+
+  return window.hlx.patchBlockConfig.reduce(
+    (config, fn) => (typeof fn === 'function' ? fn(config) : config),
+    { blockName, cssPath, jsPath },
+  );
 }
 
 /**
@@ -466,12 +441,29 @@ async function loadModule(name, jsPath, cssPath, ...args) {
  * @param {Element} block The block element
  */
 export async function loadBlock(block) {
-  const status = block.dataset.blockStatus;
+  const status = block.getAttribute('data-block-status');
   if (status !== 'loading' && status !== 'loaded') {
-    block.dataset.blockStatus = 'loading';
+    block.setAttribute('data-block-status', 'loading');
     const { blockName, cssPath, jsPath } = getBlockConfig(block);
     try {
-      await loadModule(blockName, jsPath, cssPath, block);
+      const cssLoaded = new Promise((resolve) => {
+        loadCSS(cssPath, resolve);
+      });
+      const decorationComplete = new Promise((resolve) => {
+        (async () => {
+          try {
+            const mod = await import(jsPath);
+            if (mod.default) {
+              await mod.default(block);
+            }
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.log(`failed to load module for ${blockName}`, error);
+          }
+          resolve();
+        })();
+      });
+      await Promise.all([cssLoaded, decorationComplete]);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.log(`failed to load block ${blockName}`, error);
@@ -591,69 +583,27 @@ export function decorateTemplateAndTheme() {
  * Decorates paragraphs containing a single link as buttons.
  * @param {Element} element container element
  */
-export function decorateButtons(element) {
-  const wrapButtonText = (a) => ((a.innerHTML.startsWith('<'))
-    ? `${a.querySelector('span.icon')?.outerHTML || ''}<span class="button-text">${a.textContent}</span>`
-    : `<span class="button-text">${a.textContent}</span>${a.querySelector('span.icon')?.outerHTML || ''}`
-  );
-  element.querySelectorAll('a').forEach((a) => {
-    if (a.closest('.nav-brand') || a.closest('.nav-sections')) {
-      return;
-    }
 
+export function decorateButtons(element) {
+  element.querySelectorAll('a').forEach((a) => {
     a.title = a.title || a.textContent;
     if (a.href !== a.textContent) {
       const up = a.parentElement;
       const twoup = a.parentElement.parentElement;
-      const threeup = a.parentElement.parentElement?.parentElement;
-
       if (!a.querySelector('img')) {
-        // Example: <p><strong><a href="example.com">Text</a></strong></p>
+        if (up.childNodes.length === 1 && (up.tagName === 'P' || up.tagName === 'DIV')) {
+          a.className = 'button primary'; // default
+          up.classList.add('button-container');
+        }
         if (up.childNodes.length === 1 && up.tagName === 'STRONG'
           && twoup.childNodes.length === 1 && twoup.tagName === 'P') {
           a.className = 'button primary';
           twoup.classList.add('button-container');
-          up.replaceWith(a);
-          a.innerHTML = wrapButtonText(a);
-          return;
         }
         if (up.childNodes.length === 1 && up.tagName === 'EM'
-            && twoup.childNodes.length === 1 && twoup.tagName === 'STRONG'
-            && threeup?.childNodes.length === 1 && threeup?.tagName === 'P') {
+          && twoup.childNodes.length === 1 && twoup.tagName === 'P') {
           a.className = 'button secondary';
-          threeup.classList.add('button-container');
-          up.replaceWith(a);
-          a.innerHTML = wrapButtonText(a);
-          return;
-        }
-        // Example: <p><a href="example.com">Text</a> (example.com)</p>
-        if (up.childNodes.length === 1 && up.tagName === 'P' && a.href.includes('/fragments/')) {
-          a.className = 'button modal';
-          up.classList.add('button-container');
-          return;
-        }
-        // Example: <p><a href="example.com">Text</a> <em>50% Discount</em></p>
-        if (up.childNodes.length === 3 && up.tagName === 'P' && a.nextElementSibling?.tagName === 'EM') {
-          a.className = 'button';
-          up.classList.add('button-container');
-          a.innerHTML = wrapButtonText(a);
-          a.dataset.modal = a.nextSibling.textContent.trim().slice(1, -1);
-          a.nextSibling.remove();
-          return;
-        }
-        // Example: <p><a href="example.com">? Text</a></p>
-        if (up.childNodes.length === 1 && up.tagName === 'P' && up.innerText.startsWith('?')) {
-          a.className = 'info-button modal';
-          up.classList.add('info-button-container');
-          a.textContent = a.textContent.slice(1).trim();
-          a.title = a.title.slice(1).trim();
-          return;
-        }
-        // Example: <p><a href="example.com">Text</a></p>
-        if (up.childNodes.length === 1 && (up.tagName === 'P' || up.tagName === 'DIV')) {
-          a.className = 'button'; // default
-          up.classList.add('button-container');
-          a.innerHTML = wrapButtonText(a);
+          twoup.classList.add('button-container');
         }
       }
     }
@@ -669,6 +619,7 @@ export async function waitForLCP(lcpBlocks) {
   if (hasLCPBlock) await loadBlock(block);
 
   document.body.style.display = null;
+  document.querySelector('body').classList.add('appear');
   const lcpCandidate = document.querySelector('main img');
   await new Promise((resolve) => {
     if (lcpCandidate && !lcpCandidate.complete) {
