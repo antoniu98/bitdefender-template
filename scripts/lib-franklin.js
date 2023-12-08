@@ -252,8 +252,8 @@ export function decorateBlock(block) {
   const shortBlockName = block.classList[0];
   if (shortBlockName) {
     block.classList.add('block');
-    block.setAttribute('data-block-name', shortBlockName);
-    block.setAttribute('data-block-status', 'initialized');
+    block.dataset.blockName = shortBlockName;
+    block.dataset.blockStatus = 'initialized';
     const blockWrapper = block.parentElement;
     blockWrapper.classList.add(`${shortBlockName}-wrapper`);
     const section = block.closest('.section');
@@ -323,7 +323,8 @@ export function decorateSections(main) {
     });
     wrappers.forEach((wrapper) => section.append(wrapper));
     section.classList.add('section');
-    section.setAttribute('data-section-status', 'initialized');
+    section.dataset.sectionStatus = 'initialized';
+    section.style.display = 'none';
 
     /* process section metadata */
     const sectionMeta = section.querySelector('div.section-metadata');
@@ -353,14 +354,15 @@ export function updateSectionsStatus(main) {
   const sections = [...main.querySelectorAll(':scope > div.section')];
   for (let i = 0; i < sections.length; i += 1) {
     const section = sections[i];
-    const status = section.getAttribute('data-section-status');
+    const status = section.dataset.sectionStatus;
     if (status !== 'loaded') {
       const loadingBlock = section.querySelector('.block[data-block-status="initialized"], .block[data-block-status="loading"]');
       if (loadingBlock) {
-        section.setAttribute('data-section-status', 'loading');
+        section.dataset.sectionStatus = 'loading';
         break;
       } else {
-        section.setAttribute('data-section-status', 'loaded');
+        section.dataset.sectionStatus = 'loaded';
+        section.style.display = null;
       }
     }
   }
@@ -461,7 +463,7 @@ export async function loadBlock(block) {
       // eslint-disable-next-line no-console
       console.log(`failed to load block ${blockName}`, error);
     }
-    block.setAttribute('data-block-status', 'loaded');
+    block.dataset.blockStatus = 'loaded';
   }
 }
 
@@ -608,7 +610,7 @@ export function decorateButtons(element) {
  */
 export async function waitForLCP(lcpBlocks) {
   const block = document.querySelector('.block');
-  const hasLCPBlock = (block && lcpBlocks.includes(block.getAttribute('data-block-name')));
+  const hasLCPBlock = (block && lcpBlocks.includes(block.dataset.blockName));
   if (hasLCPBlock) await loadBlock(block);
 
   document.body.style.display = null;
