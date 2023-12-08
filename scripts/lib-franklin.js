@@ -87,21 +87,21 @@ export function sampleRUM(checkpoint, data = {}) {
 
 /**
  * Loads a CSS file.
- * @param {string} href URL to the CSS file
+ * @param {string} href The path to the CSS file
  */
-export async function loadCSS(href) {
-  return new Promise((resolve, reject) => {
-    if (!document.querySelector(`head > link[href="${href}"]`)) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.onload = resolve;
-      link.onerror = reject;
-      document.head.append(link);
-    } else {
-      resolve();
+export function loadCSS(href, callback) {
+  if (!document.querySelector(`head > link[href="${href}"]`)) {
+    const link = document.createElement('link');
+    link.setAttribute('rel', 'stylesheet');
+    link.setAttribute('href', href);
+    if (typeof callback === 'function') {
+      link.onload = (e) => callback(e.type);
+      link.onerror = (e) => callback(e.type);
     }
-  });
+    document.head.appendChild(link);
+  } else if (typeof callback === 'function') {
+    callback('noop');
+  }
 }
 
 /**
@@ -142,26 +142,6 @@ export function getMetadata(name) {
 }
 
 /**
- * Sanitizes a string for use as class name.
- * @param {string} name The unsanitized string
- * @returns {string} The class name
- */
-export function toClassName(name) {
-  return typeof name === 'string'
-    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
-    : '';
-}
-
-/**
- * Sanitizes a string for use as a js property name.
- * @param {string} name The unsanitized string
- * @returns {string} The camelCased name
- */
-export function toCamelCase(name) {
-  return toClassName(name).replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-}
-
-/**
  * Gets all the metadata elements that are in the given scope.
  * @param {String} scope The scope/prefix for the metadata
  * @returns an array of HTMLElement nodes that match the given scope
@@ -177,125 +157,51 @@ export function getAllMetadata(scope) {
     }, {});
 }
 
-const ICONS_CACHE = {};
+/**
+ * Sanitizes a name for use as class name.
+ * @param {string} name The unsanitized name
+ * @returns {string} The class name
+ */
+export function toClassName(name) {
+  return typeof name === 'string'
+    ? name.toLowerCase().replace(/[^0-9a-z]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    : '';
+}
+
+/*
+ * Sanitizes a name for use as a js property name.
+ * @param {string} name The unsanitized name
+ * @returns {string} The camelCased name
+ */
+export function toCamelCase(name) {
+  return toClassName(name).replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+}
+
 /**
  * Replace icons with inline SVG and prefix with codeBasePath.
- * @param {Element} [element] Element containing icons
+ * @param {Element} element
  */
-async function internalDecorateIcons(element) {
-  // Prepare the inline sprite
-  let svgSprite = document.getElementById('franklin-svg-sprite');
-  if (!svgSprite) {
-    const div = document.createElement('div');
-    div.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" id="franklin-svg-sprite" style="display: none"></svg>';
-    svgSprite = div.firstElementChild;
-    document.body.append(div.firstElementChild);
-  }
-
-  // Download all new icons
-  const icons = [...element.querySelectorAll('span.icon')];
-  await Promise.all(icons.map(async (span) => {
-    const iconName = Array.from(span.classList).find((c) => c.startsWith('icon-')).substring(5);
-    if (!ICONS_CACHE[iconName]) {
-      ICONS_CACHE[iconName] = true;
-      try {
-        const response = await fetch(`${window.hlx.codeBasePath}/icons/${iconName}.svg`);
-        if (!response.ok) {
-          ICONS_CACHE[iconName] = false;
-          return;
-        }
-        // Styled icons don't play nice with the sprite approach because of shadow dom isolation
-        const svg = await response.text();
-        if (svg.match(/(<style | class=)/)) {
-          ICONS_CACHE[iconName] = { styled: true, html: svg };
-        } else {
-          ICONS_CACHE[iconName] = {
-            html: svg
-              .replace('<svg', `<symbol id="icons-sprite-${iconName}"`)
-              .replace(/ width=".*?"/, '')
-              .replace(/ height=".*?"/, '')
-              .replace('</svg>', '</symbol>'),
-          };
-        }
-      } catch (error) {
-        ICONS_CACHE[iconName] = false;
-        // eslint-disable-next-line no-console
-        console.error(error);
+export function decorateIcons(element = document) {
+  element.querySelectorAll('span.icon').forEach(async (span) => {
+    if (span.classList.length < 2 || !span.classList[1].startsWith('icon-')) {
+      return;
+    }
+    const icon = span.classList[1].substring(5);
+    // eslint-disable-next-line no-use-before-define
+    const resp = await fetch(`${window.hlx.codeBasePath}/icons/${icon}.svg`);
+    if (resp.ok) {
+      const iconHTML = await resp.text();
+      if (iconHTML.match(/<style/i)) {
+        const img = document.createElement('img');
+        img.src = `data:image/svg+xml,${encodeURIComponent(iconHTML)}`;
+        span.appendChild(img);
+      } else {
+        span.innerHTML = iconHTML;
       }
     }
-  }));
-
-  const symbols = Object.values(ICONS_CACHE).filter((v) => !v.styled).map((v) => v.html).join('\n');
-  svgSprite.innerHTML += symbols;
-
-  icons.forEach((span) => {
-    const iconName = Array.from(span.classList).find((c) => c.startsWith('icon-')).substring(5);
-    const parent = span.firstElementChild?.tagName === 'A' ? span.firstElementChild : span;
-
-    // Set aria-label if the parent is an anchor tag
-    const spanParent = span.parentElement;
-    if (spanParent.tagName === 'A' && !spanParent.hasAttribute('aria-label')) {
-      spanParent.setAttribute('aria-label', iconName);
-    }
-    // Styled icons need to be inlined as-is, while unstyled ones can leverage the sprite
-    if (ICONS_CACHE[iconName] && ICONS_CACHE[iconName].styled) {
-      parent.innerHTML = ICONS_CACHE[iconName].html;
-    } else {
-      parent.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><use href="#icons-sprite-${iconName}"/></svg>`;
-    }
+    const a = span.closest('a');
+    if (a) a.title = 'icon';
   });
-}
-
-let previousDecoration = Promise.resolve();
-
-/**
- * Replace icons with inline SVG and prefix with codeBasePath.
- * @param {Element} [element] Element containing icons
- */
-export async function decorateIcons(element) {
-  previousDecoration = previousDecoration.then(() => internalDecorateIcons(element));
-  await previousDecoration;
-}
-
-export async function decorateTags(element) {
-  const tagTypes = [
-    { regex: /\[#(.*?)#\]/g, className: 'dark-blue' },
-    { regex: /\[{(.*?)}\]/g, className: 'light-blue' },
-    { regex: /\[\$(.*?)\$\]/g, className: 'green' },
-  ];
-
-  function replaceTags(inputValue) {
-    let nodeValue = inputValue; // Create a local copy to work on
-    let replaced = false;
-
-    tagTypes.forEach((tagType) => {
-      let match = tagType.regex.exec(nodeValue);
-      while (match !== null) {
-        nodeValue = nodeValue.replace(match[0], `<span class="tag tag-${tagType.className}">${match[1]}</span>`);
-        replaced = true;
-        tagType.regex.lastIndex = 0; // Reset regex index
-        match = tagType.regex.exec(nodeValue);
-      }
-    });
-
-    return { nodeValue, replaced };
-  }
-
-  function replaceTagsInNode(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const originalValue = node.nodeValue;
-      const { nodeValue } = replaceTags(originalValue);
-      if (nodeValue !== originalValue) { // This checks if the nodeValue has been modified.
-        const newNode = document.createElement('span');
-        newNode.innerHTML = nodeValue;
-        node.parentNode.replaceChild(newNode, node);
-      }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      node.childNodes.forEach(replaceTagsInNode);
-    }
-  }
-
-  replaceTagsInNode(element);
 }
 
 /**
@@ -308,26 +214,27 @@ export async function fetchPlaceholders(prefix = 'default') {
   const loaded = window.placeholders[`${prefix}-loaded`];
   if (!loaded) {
     window.placeholders[`${prefix}-loaded`] = new Promise((resolve, reject) => {
-      fetch(`${prefix === 'default' ? '' : prefix}/placeholders.json`)
-        .then((resp) => {
-          if (resp.ok) {
-            return resp.json();
-          }
-          throw new Error(`${resp.status}: ${resp.statusText}`);
-        }).then((json) => {
-          const placeholders = {};
-          json.data
-            .filter((placeholder) => placeholder.Key)
-            .forEach((placeholder) => {
+      try {
+        fetch(`${prefix === 'default' ? '' : prefix}/placeholders.json`)
+          .then((resp) => resp.json())
+          .then((json) => {
+            const placeholders = {};
+            json.data.forEach((placeholder) => {
               placeholders[toCamelCase(placeholder.Key)] = placeholder.Text;
             });
-          window.placeholders[prefix] = placeholders;
-          resolve();
-        }).catch((error) => {
-          // error loading placeholders
-          window.placeholders[prefix] = {};
-          reject(error);
-        });
+            window.placeholders[prefix] = placeholders;
+            resolve();
+          })
+          .catch((error) => {
+            // error loading placeholders
+            window.placeholders[prefix] = {};
+            reject(error);
+          });
+      } catch (error) {
+        // error loading placeholders
+        window.placeholders[prefix] = {};
+        reject();
+      }
     });
   }
   await window.placeholders[`${prefix}-loaded`];
