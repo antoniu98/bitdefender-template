@@ -87,21 +87,21 @@ export function sampleRUM(checkpoint, data = {}) {
 
 /**
  * Loads a CSS file.
- * @param {string} href URL to the CSS file
+ * @param {string} href The path to the CSS file
  */
-export async function loadCSS(href) {
-  return new Promise((resolve, reject) => {
-    if (!document.querySelector(`head > link[href="${href}"]`)) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.onload = resolve;
-      link.onerror = reject;
-      document.head.append(link);
-    } else {
-      resolve();
+export function loadCSS(href, callback) {
+  if (!document.querySelector(`head > link[href="${href}"]`)) {
+    const link = document.createElement('link');
+    link.setAttribute('rel', 'stylesheet');
+    link.setAttribute('href', href);
+    if (typeof callback === 'function') {
+      link.onload = (e) => callback(e.type);
+      link.onerror = (e) => callback(e.type);
     }
-  });
+    document.head.appendChild(link);
+  } else if (typeof callback === 'function') {
+    callback('noop');
+  }
 }
 
 /**
@@ -177,125 +177,31 @@ export function toCamelCase(name) {
   return toClassName(name).replace(/-([a-z])/g, (g) => g[1].toUpperCase());
 }
 
-const ICONS_CACHE = {};
 /**
  * Replace icons with inline SVG and prefix with codeBasePath.
- * @param {Element} [element] Element containing icons
+ * @param {Element} element
  */
-async function internalDecorateIcons(element) {
-  // Prepare the inline sprite
-  let svgSprite = document.getElementById('franklin-svg-sprite');
-  if (!svgSprite) {
-    const div = document.createElement('div');
-    div.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" id="franklin-svg-sprite" style="display: none"></svg>';
-    svgSprite = div.firstElementChild;
-    document.body.append(div.firstElementChild);
-  }
-
-  // Download all new icons
-  const icons = [...element.querySelectorAll('span.icon')];
-  await Promise.all(icons.map(async (span) => {
-    const iconName = Array.from(span.classList).find((c) => c.startsWith('icon-')).substring(5);
-    if (!ICONS_CACHE[iconName]) {
-      ICONS_CACHE[iconName] = true;
-      try {
-        const response = await fetch(`${window.hlx.codeBasePath}/icons/${iconName}.svg`);
-        if (!response.ok) {
-          ICONS_CACHE[iconName] = false;
-          return;
-        }
-        // Styled icons don't play nice with the sprite approach because of shadow dom isolation
-        const svg = await response.text();
-        if (svg.match(/(<style | class=)/)) {
-          ICONS_CACHE[iconName] = { styled: true, html: svg };
-        } else {
-          ICONS_CACHE[iconName] = {
-            html: svg
-              .replace('<svg', `<symbol id="icons-sprite-${iconName}"`)
-              .replace(/ width=".*?"/, '')
-              .replace(/ height=".*?"/, '')
-              .replace('</svg>', '</symbol>'),
-          };
-        }
-      } catch (error) {
-        ICONS_CACHE[iconName] = false;
-        // eslint-disable-next-line no-console
-        console.error(error);
+export function decorateIcons(element = document) {
+  element.querySelectorAll('span.icon').forEach(async (span) => {
+    if (span.classList.length < 2 || !span.classList[1].startsWith('icon-')) {
+      return;
+    }
+    const icon = span.classList[1].substring(5);
+    // eslint-disable-next-line no-use-before-define
+    const resp = await fetch(`${window.hlx.codeBasePath}/icons/${icon}.svg`);
+    if (resp.ok) {
+      const iconHTML = await resp.text();
+      if (iconHTML.match(/<style/i)) {
+        const img = document.createElement('img');
+        img.src = `data:image/svg+xml,${encodeURIComponent(iconHTML)}`;
+        span.appendChild(img);
+      } else {
+        span.innerHTML = iconHTML;
       }
     }
-  }));
-
-  const symbols = Object.values(ICONS_CACHE).filter((v) => !v.styled).map((v) => v.html).join('\n');
-  svgSprite.innerHTML += symbols;
-
-  icons.forEach((span) => {
-    const iconName = Array.from(span.classList).find((c) => c.startsWith('icon-')).substring(5);
-    const parent = span.firstElementChild?.tagName === 'A' ? span.firstElementChild : span;
-
-    // Set aria-label if the parent is an anchor tag
-    const spanParent = span.parentElement;
-    if (spanParent.tagName === 'A' && !spanParent.hasAttribute('aria-label')) {
-      spanParent.setAttribute('aria-label', iconName);
-    }
-    // Styled icons need to be inlined as-is, while unstyled ones can leverage the sprite
-    if (ICONS_CACHE[iconName] && ICONS_CACHE[iconName].styled) {
-      parent.innerHTML = ICONS_CACHE[iconName].html;
-    } else {
-      parent.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg"><use href="#icons-sprite-${iconName}"/></svg>`;
-    }
+    const a = span.closest('a');
+    if (a) a.title = 'icon';
   });
-}
-
-let previousDecoration = Promise.resolve();
-
-/**
- * Replace icons with inline SVG and prefix with codeBasePath.
- * @param {Element} [element] Element containing icons
- */
-export async function decorateIcons(element) {
-  previousDecoration = previousDecoration.then(() => internalDecorateIcons(element));
-  await previousDecoration;
-}
-
-export async function decorateTags(element) {
-  const tagTypes = [
-    { regex: /\[#(.*?)#\]/g, className: 'dark-blue' },
-    { regex: /\[{(.*?)}\]/g, className: 'light-blue' },
-    { regex: /\[\$(.*?)\$\]/g, className: 'green' },
-  ];
-
-  function replaceTags(inputValue) {
-    let nodeValue = inputValue; // Create a local copy to work on
-    let replaced = false;
-
-    tagTypes.forEach((tagType) => {
-      let match = tagType.regex.exec(nodeValue);
-      while (match !== null) {
-        nodeValue = nodeValue.replace(match[0], `<span class="tag tag-${tagType.className}">${match[1]}</span>`);
-        replaced = true;
-        tagType.regex.lastIndex = 0; // Reset regex index
-        match = tagType.regex.exec(nodeValue);
-      }
-    });
-
-    return { nodeValue, replaced };
-  }
-
-  function replaceTagsInNode(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const originalValue = node.nodeValue;
-      const { nodeValue } = replaceTags(originalValue);
-      if (nodeValue !== originalValue) { // This checks if the nodeValue has been modified.
-        const newNode = document.createElement('span');
-        newNode.innerHTML = nodeValue;
-        node.parentNode.replaceChild(newNode, node);
-      }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      node.childNodes.forEach(replaceTagsInNode);
-    }
-  }
-
-  replaceTagsInNode(element);
 }
 
 /**
@@ -308,26 +214,27 @@ export async function fetchPlaceholders(prefix = 'default') {
   const loaded = window.placeholders[`${prefix}-loaded`];
   if (!loaded) {
     window.placeholders[`${prefix}-loaded`] = new Promise((resolve, reject) => {
-      fetch(`${prefix === 'default' ? '' : prefix}/placeholders.json`)
-        .then((resp) => {
-          if (resp.ok) {
-            return resp.json();
-          }
-          throw new Error(`${resp.status}: ${resp.statusText}`);
-        }).then((json) => {
-          const placeholders = {};
-          json.data
-            .filter((placeholder) => placeholder.Key)
-            .forEach((placeholder) => {
+      try {
+        fetch(`${prefix === 'default' ? '' : prefix}/placeholders.json`)
+          .then((resp) => resp.json())
+          .then((json) => {
+            const placeholders = {};
+            json.data.forEach((placeholder) => {
               placeholders[toCamelCase(placeholder.Key)] = placeholder.Text;
             });
-          window.placeholders[prefix] = placeholders;
-          resolve();
-        }).catch((error) => {
-          // error loading placeholders
-          window.placeholders[prefix] = {};
-          reject(error);
-        });
+            window.placeholders[prefix] = placeholders;
+            resolve();
+          })
+          .catch((error) => {
+            // error loading placeholders
+            window.placeholders[prefix] = {};
+            reject(error);
+          });
+      } catch (error) {
+        // error loading placeholders
+        window.placeholders[prefix] = {};
+        reject();
+      }
     });
   }
   await window.placeholders[`${prefix}-loaded`];
@@ -515,43 +422,18 @@ export function buildBlock(blockName, content) {
  * @returns {Object} The block config (blockName, cssPath and jsPath)
  */
 function getBlockConfig(block) {
-  const { blockName } = block.dataset;
+  const blockName = block.getAttribute('data-block-name');
   const cssPath = `${window.hlx.codeBasePath}/blocks/${blockName}/${blockName}.css`;
   const jsPath = `${window.hlx.codeBasePath}/blocks/${blockName}/${blockName}.js`;
-  const original = { blockName, cssPath, jsPath };
-  return (window.hlx.patchBlockConfig || [])
-    .filter((fn) => typeof fn === 'function')
-    .reduce((config, fn) => fn(config, original), { blockName, cssPath, jsPath });
-}
 
-/**
- * Loads JS and CSS for a module and executes it's default export.
- * @param {string} name The module name
- * @param {string} jsPath The JS file to load
- * @param {string} [cssPath] An optional CSS file to load
- * @param {object[]} [args] Parameters to be passed to the default export when it is called
- */
-async function loadModule(name, jsPath, cssPath, ...args) {
-  const cssLoaded = cssPath ? loadCSS(cssPath) : Promise.resolve();
-  const decorationComplete = jsPath
-    ? new Promise((resolve) => {
-      (async () => {
-        let mod;
-        try {
-          mod = await import(jsPath);
-          if (mod.default) {
-            await mod.default.apply(null, args);
-          }
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.log(`failed to load module for ${name}`, error);
-        }
-        resolve(mod);
-      })();
-    })
-    : Promise.resolve();
-  return Promise.all([cssLoaded, decorationComplete])
-    .then(([, api]) => api);
+  if (!window.hlx.patchBlockConfig) {
+    return { blockName, cssPath, jsPath };
+  }
+
+  return window.hlx.patchBlockConfig.reduce(
+    (config, fn) => (typeof fn === 'function' ? fn(config) : config),
+    { blockName, cssPath, jsPath },
+  );
 }
 
 /**
@@ -559,12 +441,29 @@ async function loadModule(name, jsPath, cssPath, ...args) {
  * @param {Element} block The block element
  */
 export async function loadBlock(block) {
-  const status = block.dataset.blockStatus;
+  const status = block.getAttribute('data-block-status');
   if (status !== 'loading' && status !== 'loaded') {
-    block.dataset.blockStatus = 'loading';
+    block.setAttribute('data-block-status', 'loading');
     const { blockName, cssPath, jsPath } = getBlockConfig(block);
     try {
-      await loadModule(blockName, jsPath, cssPath, block);
+      const cssLoaded = new Promise((resolve) => {
+        loadCSS(cssPath, resolve);
+      });
+      const decorationComplete = new Promise((resolve) => {
+        (async () => {
+          try {
+            const mod = await import(jsPath);
+            if (mod.default) {
+              await mod.default(block);
+            }
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.log(`failed to load module for ${blockName}`, error);
+          }
+          resolve();
+        })();
+      });
+      await Promise.all([cssLoaded, decorationComplete]);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.log(`failed to load block ${blockName}`, error);
@@ -684,69 +583,27 @@ export function decorateTemplateAndTheme() {
  * Decorates paragraphs containing a single link as buttons.
  * @param {Element} element container element
  */
-export function decorateButtons(element) {
-  const wrapButtonText = (a) => ((a.innerHTML.startsWith('<'))
-    ? `${a.querySelector('span.icon')?.outerHTML || ''}<span class="button-text">${a.textContent}</span>`
-    : `<span class="button-text">${a.textContent}</span>${a.querySelector('span.icon')?.outerHTML || ''}`
-  );
-  element.querySelectorAll('a').forEach((a) => {
-    if (a.closest('.nav-brand') || a.closest('.nav-sections')) {
-      return;
-    }
 
+export function decorateButtons(element) {
+  element.querySelectorAll('a').forEach((a) => {
     a.title = a.title || a.textContent;
     if (a.href !== a.textContent) {
       const up = a.parentElement;
       const twoup = a.parentElement.parentElement;
-      const threeup = a.parentElement.parentElement?.parentElement;
-
       if (!a.querySelector('img')) {
-        // Example: <p><strong><a href="example.com">Text</a></strong></p>
+        if (up.childNodes.length === 1 && (up.tagName === 'P' || up.tagName === 'DIV')) {
+          a.className = 'button primary'; // default
+          up.classList.add('button-container');
+        }
         if (up.childNodes.length === 1 && up.tagName === 'STRONG'
           && twoup.childNodes.length === 1 && twoup.tagName === 'P') {
           a.className = 'button primary';
           twoup.classList.add('button-container');
-          up.replaceWith(a);
-          a.innerHTML = wrapButtonText(a);
-          return;
         }
         if (up.childNodes.length === 1 && up.tagName === 'EM'
-            && twoup.childNodes.length === 1 && twoup.tagName === 'STRONG'
-            && threeup?.childNodes.length === 1 && threeup?.tagName === 'P') {
+          && twoup.childNodes.length === 1 && twoup.tagName === 'P') {
           a.className = 'button secondary';
-          threeup.classList.add('button-container');
-          up.replaceWith(a);
-          a.innerHTML = wrapButtonText(a);
-          return;
-        }
-        // Example: <p><a href="example.com">Text</a> (example.com)</p>
-        if (up.childNodes.length === 1 && up.tagName === 'P' && a.href.includes('/fragments/')) {
-          a.className = 'button modal';
-          up.classList.add('button-container');
-          return;
-        }
-        // Example: <p><a href="example.com">Text</a> <em>50% Discount</em></p>
-        if (up.childNodes.length === 3 && up.tagName === 'P' && a.nextElementSibling?.tagName === 'EM') {
-          a.className = 'button';
-          up.classList.add('button-container');
-          a.innerHTML = wrapButtonText(a);
-          a.dataset.modal = a.nextSibling.textContent.trim().slice(1, -1);
-          a.nextSibling.remove();
-          return;
-        }
-        // Example: <p><a href="example.com">? Text</a></p>
-        if (up.childNodes.length === 1 && up.tagName === 'P' && up.innerText.startsWith('?')) {
-          a.className = 'info-button modal';
-          up.classList.add('info-button-container');
-          a.textContent = a.textContent.slice(1).trim();
-          a.title = a.title.slice(1).trim();
-          return;
-        }
-        // Example: <p><a href="example.com">Text</a></p>
-        if (up.childNodes.length === 1 && (up.tagName === 'P' || up.tagName === 'DIV')) {
-          a.className = 'button'; // default
-          up.classList.add('button-container');
-          a.innerHTML = wrapButtonText(a);
+          twoup.classList.add('button-container');
         }
       }
     }
@@ -762,6 +619,7 @@ export async function waitForLCP(lcpBlocks) {
   if (hasLCPBlock) await loadBlock(block);
 
   document.body.style.display = null;
+  document.querySelector('body').classList.add('appear');
   const lcpCandidate = document.querySelector('main img');
   await new Promise((resolve) => {
     if (lcpCandidate && !lcpCandidate.complete) {
